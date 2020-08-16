@@ -68,6 +68,7 @@ use arc_swap::ArcSwap;
 use std::result;
 
 pub use slog::{slog_crit, slog_debug, slog_error, slog_info, slog_trace, slog_warn};
+use std::marker::PhantomData;
 
 /// Log a critical level message using current scope logger
 #[macro_export]
@@ -176,18 +177,20 @@ pub fn set_global_logger(l: slog::Logger) -> GlobalLoggerGuard {
     GlobalLoggerGuard::new()
 }
 
-struct ScopeGuard;
+/// Represents the scope of a child logger, when this falls out of scope so does the child.
+pub struct ScopeGuard<'l>(PhantomData<&'l ()>);
 
 
-impl ScopeGuard {
-    fn new(logger: &slog::Logger) -> Self {
+impl <'l> ScopeGuard<'l> {
+    /// Makes a new scope guard for the given logger. Must live as long as the logger.
+    pub fn new(logger: &slog::Logger) -> ScopeGuard {
         TL_SCOPES.with(|s| { s.borrow_mut().push(logger as *const Logger); });
 
-        ScopeGuard
+        ScopeGuard(PhantomData)
     }
 }
 
-impl Drop for ScopeGuard {
+impl Drop for ScopeGuard<'_> {
     fn drop(&mut self) {
         TL_SCOPES.with(|s| { s.borrow_mut().pop().expect("TL_SCOPES should contain a logger"); })
     }
