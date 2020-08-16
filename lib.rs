@@ -250,3 +250,18 @@ pub fn scope<SF, R>(logger: &slog::Logger, f: SF) -> R
     let _guard = ScopeGuard::new(&logger);
     f()
 }
+
+/// Creates a child logger and scope given an owned KV.
+///
+/// ```rust
+/// # use slog_scope::*;
+/// log_scope!(slog::o!("nice" => "cool"));
+/// info!("excellent");
+/// ```
+#[macro_export]
+macro_rules! log_scope {
+        ($kvs:expr) => {
+            let __logging__logger__ = ::slog_scope::logger().new($kvs);
+            let __logging__guard__ = ::slog_scope::ScopeGuard::new(&__logging__logger__);
+        };
+    }
